@@ -331,12 +331,12 @@ impl TeleinfoObservability {
 
             let span_consumption = consumption as f64 / 1000f64;
             span.add_event(
-                format!("Consuption of the period: {} kW/h", span_consumption),
+                format!("Consuption of the period: {span_consumption} kW/h"),
                 vec![KeyValue::new("consumption", span_consumption.to_string())],
             );
             let span_price = price.round() / 100f64;
             span.add_event(
-                format!("Price of the period: {} €", span_price),
+                format!("Price of the period: {span_price} €"),
                 vec![KeyValue::new("price", span_price.to_string())],
             );
 

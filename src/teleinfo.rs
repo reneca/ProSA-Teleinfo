@@ -470,12 +470,12 @@ impl fmt::Display for StatusRegistry {
 
         match self.mobile_peak_advice {
             0 => write!(f, " pm_advice=\"No PM advice\""),
-            pm => write!(f, " pm_advice=PM{}", pm),
+            pm => write!(f, " pm_advice=PM{pm}"),
         }?;
 
         match self.mobile_peak_advice {
             0 => write!(f, " pm=\"No PM\""),
-            pm => write!(f, " pm=PM{}", pm),
+            pm => write!(f, " pm=PM{pm}"),
         }
     }
 }
@@ -500,12 +500,12 @@ impl Timestamp {
                 season,
                 datetime: if season == 'E' {
                     NaiveDateTime::parse_from_str(
-                        format!("{}+02:00", timestamp_value).as_str(),
+                        format!("{timestamp_value}+02:00").as_str(),
                         format!("{}%z", Self::TIMESTAMP_FMT).as_str(),
                     )
                 } else {
                     NaiveDateTime::parse_from_str(
-                        format!("{}+01:00", timestamp_value).as_str(),
+                        format!("{timestamp_value}+01:00").as_str(),
                         format!("{}%z", Self::TIMESTAMP_FMT).as_str(),
                     )
                 }

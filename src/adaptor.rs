@@ -47,8 +47,7 @@ where
         error: prosa::core::msg::ErrorMsg<M>,
     ) -> Result<(), Box<dyn ProcError + Send + Sync>> {
         Err(Box::new(TeleinfoError::ProcErr(format!(
-            "The teleinfo processor receive an error {:?}",
-            error
+            "The teleinfo processor receive an error {error:?}"
         ))))
     }
 }
@@ -64,7 +63,7 @@ pub struct TeleinfoPinergyAdaptor {
 impl TeleinfoPinergyAdaptor {
     /// Execute pinergy script to do some stuff on Teleinfo event (Don't crash if the script don't exist)
     fn execute_script(script_name: &str) {
-        match Command::new(format!("./{}", script_name))
+        match Command::new(format!("./{script_name}"))
             .current_dir("/etc/pinergy.d")
             .output()
         {
