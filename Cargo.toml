@@ -1,0 +1,32 @@
+[package]
+name = "prosa-proc-teleinfo"
+version = "0.1.0"
+authors = ["Jeremy HERGAULT"]
+homepage = "https://www.overware.fr/ovpinergy/"
+repository = "https://github.com/reneca/ProSA-Teleinfo"
+license = "LGPL-3.0-or-later"
+edition = "2024"
+description = "ProSA processor for Enedis (French electricity network) Teleinfo"
+exclude = [
+    "prosa_teleinfo_macros/*",
+]
+
+[package.metadata.prosa.teleinfo]
+proc = "proc::TeleinfoProc"
+settings = "proc::TeleinfoSettings"
+adaptor = ["adaptor::TeleinfoPinergyAdaptor"]
+
+[dependencies]
+prosa-teleinfo-macros = { path = "prosa_teleinfo_macros", version = "0.1.0" }
+prosa = "0.2"
+prosa-utils = "0.2"
+serde = "1"
+tokio = "1"
+thiserror = "2"
+tracing = "0.1"
+tokio-serial = "5"
+bytes = "1"
+
+opentelemetry = { version = "0.24", features = ["metrics", "trace", "logs"] }
+opentelemetry_sdk = { version = "0.24", features = ["metrics", "trace", "logs", "rt-tokio"] }
+chrono = "0.4"
