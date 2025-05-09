@@ -1,5 +1,5 @@
 [package]
-name = "prosa-proc-teleinfo"
+name = "prosa-teleinfo"
 version = "0.1.0"
 authors = ["Jeremy HERGAULT"]
 homepage = "https://www.overware.fr/ovpinergy/"
