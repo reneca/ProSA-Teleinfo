@@ -4,7 +4,7 @@ use prosa::core::{
     msg::InternalMsg,
     proc::{Proc, ProcBusParam as _, proc, proc_settings},
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     adaptor::TeleinfoAdaptor,
@@ -14,7 +14,7 @@ use crate::{
 
 /// Settings for Teleinfo processor
 #[proc_settings]
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TeleinfoSettings {
     /// Path of the serial that is connected to the Teleinfo Enedis counter output (try to detect the path with the first serial port connected)
     serial_path: Option<String>,
