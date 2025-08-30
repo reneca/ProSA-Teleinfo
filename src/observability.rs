@@ -112,7 +112,7 @@ impl TeleinfoObservability {
                     );
                 }
             })
-            .init();
+            .build();
 
         // Teleinfo consumption metrics
         let meter_address = address.clone();
@@ -163,7 +163,7 @@ impl TeleinfoObservability {
                     }
                 }
             })
-            .init();
+            .build();
 
         // Teleinfo instantaneous metrics
         let meter_address = address.clone();
@@ -272,7 +272,7 @@ impl TeleinfoObservability {
                     ],
                 );
             })
-            .init();
+            .build();
 
         TeleinfoObservability {
             settings: proc.settings.clone(),

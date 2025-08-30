@@ -747,13 +747,14 @@ impl TeleinfoFrame {
     /// Function to get the index id from the tag name numbers at its end
     fn get_index_id(tag: &str) -> u8 {
         let mut tag_iter = tag.chars().rev().take(2);
-        if let (Some(c1), Some(c2)) = (tag_iter.next(), tag_iter.next()) {
-            if (48..=57).contains(&(c1 as u8)) && (48..=57).contains(&(c2 as u8)) {
-                return (c2 as u8 - 48) * 10 + (c1 as u8 - 48);
-            }
+        if let (Some(c1), Some(c2)) = (tag_iter.next(), tag_iter.next())
+            && (48..=57).contains(&(c1 as u8))
+            && (48..=57).contains(&(c2 as u8))
+        {
+            (c2 as u8 - 48) * 10 + (c1 as u8 - 48)
+        } else {
+            0
         }
-
-        0
     }
 
     /// Function to read a single val until the separator
