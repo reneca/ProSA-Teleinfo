@@ -126,9 +126,8 @@ where
         // Start the serial for Teleinfo
         let mut serial = Teleinfo::new(&self.settings)?;
 
-        // Initiate an adaptor for the stub processor
-        let mut adaptor = A::default();
-        adaptor.init(self)?;
+        // Initiate an adaptor for the teleinfo processor
+        let mut adaptor = A::new(self)?;
 
         // Declare the processor
         self.proc.add_proc().await?;
