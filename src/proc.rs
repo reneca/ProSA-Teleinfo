@@ -117,7 +117,7 @@ pub struct TeleinfoProc {}
 #[proc]
 impl<A> Proc<A> for TeleinfoProc
 where
-    A: Default + Adaptor + TeleinfoAdaptor<M> + std::marker::Send,
+    A: Adaptor + TeleinfoAdaptor<M> + std::marker::Send,
 {
     async fn internal_run(
         &mut self,
