@@ -56,6 +56,7 @@ where
 }
 
 #[cfg(target_os = "linux")]
+#[allow(dead_code)]
 struct PinergyLed {
     pub red: OutputPin,
     pub green: OutputPin,
@@ -64,6 +65,7 @@ struct PinergyLed {
 
 #[cfg(target_os = "linux")]
 impl PinergyLed {
+    #[allow(dead_code)]
     pub fn set(&mut self, red: bool, green: bool, blue: bool) {
         self.red.write(red.into());
         self.green.write(green.into());
@@ -95,6 +97,7 @@ impl PinergyPiloteOut {
         self.neg.set_low();
     }
 
+    #[allow(dead_code)]
     pub fn eco(&mut self) {
         self.pos.set_high();
         self.neg.set_high();
@@ -105,6 +108,7 @@ impl PinergyPiloteOut {
         self.neg.set_high();
     }
 
+    #[allow(dead_code)]
     pub fn stop(&mut self) {
         self.pos.set_high();
         self.neg.set_low();
@@ -128,6 +132,7 @@ impl From<(Pin, Pin)> for PinergyPiloteOut {
 pub struct TeleinfoPinergyAdaptor {
     tarif_period: RatePeriod,
     #[cfg(target_os = "linux")]
+    #[allow(dead_code)]
     led_d1: Option<PinergyLed>,
     #[cfg(target_os = "linux")]
     _led_d2: Option<PinergyLed>,
