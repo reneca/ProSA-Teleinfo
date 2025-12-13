@@ -39,15 +39,15 @@ impl TeleinfoSettings {
     }
 
     fn default_price_base() -> f64 {
-        20.16f64
+        19.52f64
     }
 
     fn default_price_hc_hp() -> (f64, f64) {
-        (16.96f64, 21.46f64)
+        (16.35f64, 20.81f64)
     }
 
     fn default_price_tempo() -> (f64, f64, f64, f64, f64, f64) {
-        (12.88f64, 15.52f64, 14.47f64, 17.92f64, 15.18f64, 65.86f64)
+        (12.32f64, 14.94f64, 13.91f64, 17.30f64, 14.60f64, 64.68f64)
     }
 
     /// Getter of the serial UART address
@@ -119,10 +119,7 @@ impl<A> Proc<A> for TeleinfoProc
 where
     A: Adaptor + TeleinfoAdaptor<M> + std::marker::Send,
 {
-    async fn internal_run(
-        &mut self,
-        _name: String,
-    ) -> Result<(), Box<dyn ProcError + Send + Sync>> {
+    async fn internal_run(&mut self) -> Result<(), Box<dyn ProcError + Send + Sync>> {
         // Start the serial for Teleinfo
         let mut serial = Teleinfo::new(&self.settings)?;
 
