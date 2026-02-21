@@ -97,7 +97,7 @@ impl TeleinfoObservability {
                             &[
                                 KeyValue::new("address", meter_address.clone()),
                                 KeyValue::new("type", "max_current"),
-                                KeyValue::new("phase", (i + 1).to_string()),
+                                KeyValue::new("phase", (i + 1) as i64),
                             ],
                         );
                     });
@@ -107,7 +107,7 @@ impl TeleinfoObservability {
                         &[
                             KeyValue::new("address", meter_address.clone()),
                             KeyValue::new("type", "max_current"),
-                            KeyValue::new("phase", "1"),
+                            KeyValue::new("phase", 1),
                         ],
                     );
                 }
@@ -214,7 +214,7 @@ impl TeleinfoObservability {
                             &[
                                 KeyValue::new("address", meter_address.clone()),
                                 KeyValue::new("type", "voltage"),
-                                KeyValue::new("phase", (i + 1).to_string()),
+                                KeyValue::new("phase", (i + 1) as i64),
                             ],
                         );
                     });
@@ -224,7 +224,7 @@ impl TeleinfoObservability {
                         &[
                             KeyValue::new("address", meter_address.clone()),
                             KeyValue::new("type", "voltage"),
-                            KeyValue::new("phase", "1"),
+                            KeyValue::new("phase", 1),
                         ],
                     );
                 }
@@ -237,7 +237,7 @@ impl TeleinfoObservability {
                             &[
                                 KeyValue::new("address", meter_address.clone()),
                                 KeyValue::new("type", "current"),
-                                KeyValue::new("phase", (i + 1).to_string()),
+                                KeyValue::new("phase", (i + 1) as i64),
                             ],
                         );
                     });
@@ -247,7 +247,7 @@ impl TeleinfoObservability {
                         &[
                             KeyValue::new("address", meter_address.clone()),
                             KeyValue::new("type", "current"),
-                            KeyValue::new("phase", "1"),
+                            KeyValue::new("phase", 1),
                         ],
                     );
                 }

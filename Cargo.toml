@@ -1,6 +1,6 @@
 [package]
 name = "prosa-teleinfo"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Jeremy HERGAULT"]
 homepage = "https://www.overware.fr/ovpinergy/"
 repository = "https://github.com/reneca/ProSA-Teleinfo"
@@ -19,7 +19,6 @@ adaptor = ["adaptor::TeleinfoPinergyAdaptor"]
 [dependencies]
 prosa-teleinfo-macros = { path = "prosa_teleinfo_macros", version = "0.1.0" }
 prosa = { version = "0.4", default-features = false }
-prosa-utils = { version = "0.4", default-features = false, features = ["msg"] }
 serde = "1"
 tokio = "1"
 thiserror = "2"
@@ -27,7 +26,7 @@ tracing = "0.1"
 tokio-serial = "5"
 bytes = "1"
 
-opentelemetry = { version = "0.29", features = ["metrics", "trace", "logs"] }
+opentelemetry = { version = "0.31", features = ["metrics", "trace", "logs"] }
 chrono = "0.4"
 
 [target.'cfg(target_os = "linux")'.dependencies]

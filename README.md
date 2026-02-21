@@ -21,15 +21,15 @@ Prices in the following example are for illustration purposes only and may not b
 teleinfo:
   serial_path: "/dev/serial0",
   legacy: false,
-  price_base: 25.16
+  price_base: 19.40
   price_hc_hp:
-  - 20.68
-  - 27.0
+  - 15.79
+  - 20.65
   price_tempo:
-  - 12.96
-  - 16.09
-  - 14.86
-  - 18.94
-  - 15.68
-  - 75.62
+  - 13.25
+  - 16.12
+  - 14.99
+  - 18.71
+  - 15.75
+  - 70.60
 ```
