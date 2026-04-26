@@ -1,6 +1,6 @@
 [package]
 name = "prosa-teleinfo"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Jeremy HERGAULT"]
 homepage = "https://www.overware.fr/ovpinergy/"
 repository = "https://github.com/reneca/ProSA-Teleinfo"
