@@ -40,15 +40,15 @@ impl TeleinfoSettings {
     }
 
     fn default_price_base() -> f64 {
-        19.40f64
+        19.85f64
     }
 
     fn default_price_hc_hp() -> (f64, f64) {
-        (15.79f64, 20.65f64)
+        (18.89f64, 21.42f64)
     }
 
     fn default_price_tempo() -> (f64, f64, f64, f64, f64, f64) {
-        (13.25f64, 16.12f64, 14.99f64, 18.71f64, 15.75f64, 70.60f64)
+        (13.56f64, 16.54f64, 15.36f64, 19.21f64, 16.15f64, 72.95f64)
     }
 
     /// Getter of the serial UART address
