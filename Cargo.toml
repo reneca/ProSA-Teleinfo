@@ -1,6 +1,6 @@
 [package]
 name = "prosa-teleinfo"
-version = "0.3.2"
+version = "0.4.0"
 authors = ["Jeremy HERGAULT"]
 homepage = "https://www.overware.fr/ovpinergy/"
 repository = "https://github.com/reneca/ProSA-Teleinfo"
@@ -18,7 +18,7 @@ adaptor = ["adaptor::TeleinfoPinergyAdaptor"]
 
 [dependencies]
 prosa-teleinfo-macros = { path = "prosa_teleinfo_macros", version = "0.1.0" }
-prosa = { git = "https://github.com/worldline/ProSA", branch = "reload_improve", default-features = false }
+prosa = "0.5"
 serde = "1"
 tokio = "1"
 thiserror = "2"
