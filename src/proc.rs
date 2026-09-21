@@ -5,6 +5,7 @@ use prosa::core::{
     proc::{Proc, ProcBusParam as _, proc, proc_settings},
 };
 use serde::{Deserialize, Serialize};
+use tracing::warn;
 
 use crate::{
     adaptor::TeleinfoAdaptor,
@@ -163,21 +164,30 @@ where
                         ))),
                         InternalMsg::Response(msg) => adaptor.process_response(msg)?,
                         InternalMsg::Error(err) => adaptor.process_error(err)?,
-                        InternalMsg::Config(config) => if let Some(settings) = config.reload_proc::<TeleinfoSettings>(self.proc.as_ref(), &adaptor)
-                        {
-                            let reloaded_serial = self
-                                .settings
-                                .serial_config_changed(&settings)
-                                .then(|| Teleinfo::new(&settings))
-                                .transpose()?;
-                            self.settings = settings;
-                            if let Some(reloaded_serial) = reloaded_serial {
-                                serial = reloaded_serial;
+                        InternalMsg::Config(config) => {
+                            match config.reload_proc::<TeleinfoSettings>(self.proc.as_ref(), &adaptor) {
+                                Ok(settings) => {
+                                    let reloaded_serial = self
+                                        .settings
+                                        .serial_config_changed(&settings)
+                                        .then(|| Teleinfo::new(&settings))
+                                        .transpose()?;
+                                    self.settings = settings;
+                                    if let Some(reloaded_serial) = reloaded_serial {
+                                        serial = reloaded_serial;
+                                    }
+                                    if let Some(observability) = &mut observability {
+                                        observability.reload_settings(&self.settings);
+                                    }
+                                }
+                                Err(err) => {
+                                    warn!(
+                                        "Failed to reload configuration for processor {}: {err}",
+                                        self.name()
+                                    );
+                                }
                             }
-                            if let Some(observability) = &mut observability {
-                                observability.reload_settings(&self.settings);
-                            }
-                        },
+                        }
                         InternalMsg::Service(table) => self.service = table,
                         InternalMsg::Shutdown => {
                             // Stop directly the processor
