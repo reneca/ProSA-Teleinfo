@@ -5,11 +5,12 @@ use prosa::core::{
     proc::{Proc, ProcBusParam as _, proc, proc_settings},
 };
 use serde::{Deserialize, Serialize};
+use tracing::warn;
 
 use crate::{
     adaptor::TeleinfoAdaptor,
     observability::TeleinfoObservability,
-    teleinfo::{RateColor, RatePeriod, Teleinfo, TeleinfoFrame},
+    teleinfo::{RateColor, RatePeriod, Teleinfo, TeleinfoError, TeleinfoFrame},
 };
 
 /// Settings for Teleinfo processor
@@ -39,15 +40,15 @@ impl TeleinfoSettings {
     }
 
     fn default_price_base() -> f64 {
-        19.40f64
+        19.85f64
     }
 
     fn default_price_hc_hp() -> (f64, f64) {
-        (15.79f64, 20.65f64)
+        (18.89f64, 21.42f64)
     }
 
     fn default_price_tempo() -> (f64, f64, f64, f64, f64, f64) {
-        (13.25f64, 16.12f64, 14.99f64, 18.71f64, 15.75f64, 70.60f64)
+        (13.56f64, 16.54f64, 15.36f64, 19.21f64, 16.15f64, 72.95f64)
     }
 
     /// Getter of the serial UART address
@@ -67,6 +68,10 @@ impl TeleinfoSettings {
     /// Parameter on the Teleinfo mode (legacy or not)
     pub fn is_legacy(&self) -> bool {
         self.legacy
+    }
+
+    fn serial_config_changed(&self, settings: &Self) -> bool {
+        self.serial_path != settings.serial_path || self.legacy != settings.legacy
     }
 
     /// Get the price from the current color and period
@@ -151,15 +156,38 @@ where
                 },
                 Some(msg) = self.internal_rx_queue.recv() => {
                     match msg {
-                        InternalMsg::Request(msg) => panic!(
-                            "The teleinfo processor {} should not receive a request {:?}",
-                            self.get_proc_id(),
-                            msg
-                        ),
+                        InternalMsg::Request(_) => return Err(Box::new(TeleinfoError::ProcErr(
+                            format!(
+                                "The teleinfo processor {} received an unsupported request",
+                                self.get_proc_id(),
+                            ),
+                        ))),
                         InternalMsg::Response(msg) => adaptor.process_response(msg)?,
                         InternalMsg::Error(err) => adaptor.process_error(err)?,
-                        InternalMsg::Command(_) => todo!(),
-                        InternalMsg::Config => todo!(),
+                        InternalMsg::Config(config) => {
+                            match config.reload_proc::<TeleinfoSettings>(self.proc.as_ref(), &adaptor) {
+                                Ok(settings) => {
+                                    let reloaded_serial = self
+                                        .settings
+                                        .serial_config_changed(&settings)
+                                        .then(|| Teleinfo::new(&settings))
+                                        .transpose()?;
+                                    self.settings = settings;
+                                    if let Some(reloaded_serial) = reloaded_serial {
+                                        serial = reloaded_serial;
+                                    }
+                                    if let Some(observability) = &mut observability {
+                                        observability.reload_settings(&self.settings);
+                                    }
+                                }
+                                Err(err) => {
+                                    warn!(
+                                        "Failed to reload configuration for processor {}: {err}",
+                                        self.name()
+                                    );
+                                }
+                            }
+                        }
                         InternalMsg::Service(table) => self.service = table,
                         InternalMsg::Shutdown => {
                             // Stop directly the processor
@@ -171,5 +199,26 @@ where
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TeleinfoSettings;
+
+    #[test]
+    fn detects_only_serial_configuration_changes() {
+        let settings = TeleinfoSettings::default();
+        let mut updated_settings = settings.clone();
+
+        updated_settings.price_base += 1.0;
+        assert!(!settings.serial_config_changed(&updated_settings));
+
+        updated_settings.legacy = !settings.legacy;
+        assert!(settings.serial_config_changed(&updated_settings));
+
+        updated_settings.legacy = settings.legacy;
+        updated_settings.serial_path = Some("/dev/serial1".to_owned());
+        assert!(settings.serial_config_changed(&updated_settings));
     }
 }

@@ -1,10 +1,11 @@
-use opentelemetry::{
-    KeyValue,
-    global::{BoxedSpan, BoxedTracer},
-    trace::{Span, Tracer as _},
+use prosa::{
+    core::proc::ProcConfig as _,
+    otel::{
+        KeyValue,
+        global::{BoxedSpan, BoxedTracer},
+        trace::{Span as _, Tracer as _},
+    },
 };
-
-use prosa::core::proc::ProcConfig as _;
 use tokio::sync::watch;
 
 use crate::{
@@ -47,6 +48,9 @@ pub struct TeleinfoObservability {
 }
 
 impl TeleinfoObservability {
+    const WH_PER_KWH: f64 = 1000.0;
+    const CENTS_PER_EURO: f64 = 100.0;
+
     /// Create new Teleinfo observability to monitor Teleinfo data
     pub fn new<M>(address: String, proc: &TeleinfoProc<M>) -> TeleinfoObservability
     where
@@ -294,47 +298,68 @@ impl TeleinfoObservability {
         }
     }
 
+    /// Reload settings used for consumption price calculation.
+    pub(crate) fn reload_settings(&mut self, settings: &TeleinfoSettings) {
+        self.settings = settings.clone();
+    }
+
+    fn counter_delta(current: u32, initial: u32) -> u32 {
+        current.checked_sub(initial).unwrap_or(current)
+    }
+
+    fn price_euros(consumption_wh: u32, price_cents_per_kwh: f64) -> f64 {
+        consumption_wh as f64 * price_cents_per_kwh / (Self::WH_PER_KWH * Self::CENTS_PER_EURO)
+    }
+
     /// Function call when a new period begin
     fn new_period(&mut self, new_period: RatePeriod) {
         if let Some(span) = &mut self.period_span {
             span.set_attributes([KeyValue::new("address", self.address.clone())]);
 
             let mut consumption = 0;
-            let mut price = 0f64;
+            let mut price_euros = 0f64;
 
             // HC
             let current_index_low_hour = self.index_low_hour.borrow();
             for color in RateColor::values() {
-                let color_consumption = current_index_low_hour[color as usize - 1]
-                    - self.index_low_hour_span[color as usize - 1];
+                let color_consumption = Self::counter_delta(
+                    current_index_low_hour[color as usize - 1],
+                    self.index_low_hour_span[color as usize - 1],
+                );
                 if color_consumption > 0 {
                     consumption += color_consumption;
-                    price +=
-                        (color_consumption as f64) * self.settings.get_price(color, RatePeriod::HC);
+                    price_euros += Self::price_euros(
+                        color_consumption,
+                        self.settings.get_price(color, RatePeriod::HC),
+                    );
                 }
             }
 
             // HP
             let current_index_high_hour = self.index_high_hour.borrow();
             for color in RateColor::values() {
-                let color_consumption = current_index_high_hour[color as usize - 1]
-                    - self.index_high_hour_span[color as usize - 1];
+                let color_consumption = Self::counter_delta(
+                    current_index_high_hour[color as usize - 1],
+                    self.index_high_hour_span[color as usize - 1],
+                );
                 if color_consumption > 0 {
                     consumption += color_consumption;
-                    price +=
-                        (color_consumption as f64) * self.settings.get_price(color, RatePeriod::HP);
+                    price_euros += Self::price_euros(
+                        color_consumption,
+                        self.settings.get_price(color, RatePeriod::HP),
+                    );
                 }
             }
 
-            let span_consumption = consumption as f64 / 1000f64;
+            let span_consumption = consumption as f64 / Self::WH_PER_KWH;
             span.add_event(
-                format!("Consuption of the period: {span_consumption} kW/h"),
-                vec![KeyValue::new("consumption", span_consumption.to_string())],
+                format!("Consumption of the period: {span_consumption} kWh"),
+                vec![KeyValue::new("consumption", span_consumption)],
             );
-            let span_price = price.round() / 100f64;
+            let span_price = (price_euros * Self::CENTS_PER_EURO).round() / Self::CENTS_PER_EURO;
             span.add_event(
                 format!("Price of the period: {span_price} €"),
-                vec![KeyValue::new("price", span_price.to_string())],
+                vec![KeyValue::new("price", span_price)],
             );
 
             span.end();
@@ -597,5 +622,21 @@ impl TeleinfoObservability {
             }
             _ => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TeleinfoObservability;
+
+    #[test]
+    fn counter_delta_handles_increase_and_reset() {
+        assert_eq!(250, TeleinfoObservability::counter_delta(1_250, 1_000));
+        assert_eq!(10, TeleinfoObservability::counter_delta(10, 1_000));
+    }
+
+    #[test]
+    fn converts_watt_hours_and_cents_per_kwh_to_euros() {
+        assert_eq!(0.2065, TeleinfoObservability::price_euros(1_000, 20.65));
     }
 }

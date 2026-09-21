@@ -48,6 +48,9 @@ pub enum TeleinfoError {
     /// Not enough data to parse the frame
     #[error("Not enough data for parsing")]
     NotEnoughData,
+    /// Buffered Teleinfo data exceeded the maximum frame size
+    #[error("Teleinfo frame is too long ({0} bytes)")]
+    FrameTooLong(usize),
     /// Processor error
     #[error("Teleinfo processor error `{0}`")]
     ProcErr(String),
@@ -71,6 +74,7 @@ impl ProcError for TeleinfoError {
                 | TeleinfoError::TimestampValue(_, _)
                 | TeleinfoError::WrongChecksum(_, _, _)
                 | TeleinfoError::NotEnoughData
+                | TeleinfoError::FrameTooLong(_)
                 | TeleinfoError::SerialErr(_)
                 | TeleinfoError::IoErr(_)
         )
@@ -473,7 +477,7 @@ impl fmt::Display for StatusRegistry {
             pm => write!(f, " pm_advice=PM{pm}"),
         }?;
 
-        match self.mobile_peak_advice {
+        match self.mobile_peak {
             0 => write!(f, " pm=\"No PM\""),
             pm => write!(f, " pm=PM{pm}"),
         }
@@ -1168,6 +1172,8 @@ pub struct Teleinfo {
 }
 
 impl Teleinfo {
+    const MAX_FRAME_SIZE: usize = 2048;
+
     /// Method to initiate a serial connection and open it
     pub fn new(settings: &TeleinfoSettings) -> Result<Teleinfo, TeleinfoError> {
         let serial_config = if settings.is_legacy() {
@@ -1194,7 +1200,7 @@ impl Teleinfo {
 
         Ok(Teleinfo {
             serial,
-            serial_buffer: bytes::BytesMut::with_capacity(2048),
+            serial_buffer: bytes::BytesMut::with_capacity(Self::MAX_FRAME_SIZE),
         })
     }
 
@@ -1230,6 +1236,12 @@ impl Teleinfo {
                 }
             }
 
+            if self.serial_buffer.len() >= Self::MAX_FRAME_SIZE {
+                let frame_len = self.serial_buffer.len();
+                self.serial_buffer.clear();
+                return Err(TeleinfoError::FrameTooLong(frame_len));
+            }
+
             if self.serial.read_buf(&mut self.serial_buffer).await? == 0 {
                 return Err(TeleinfoError::IoErr(io::Error::new(
                     io::ErrorKind::BrokenPipe,
@@ -1243,9 +1255,11 @@ impl Teleinfo {
 #[cfg(test)]
 mod tests {
     use bytes::Bytes;
+    use prosa::core::error::ProcError as _;
 
     use crate::teleinfo::{
-        RateColor, RatePeriod, StatusRegistry, TeleinfoCheckedData, TeleinfoFrame, Timestamp,
+        RateColor, RatePeriod, StatusRegistry, Teleinfo, TeleinfoCheckedData, TeleinfoError,
+        TeleinfoFrame, Timestamp,
     };
 
     use super::OpTarif;
@@ -1333,13 +1347,28 @@ mod tests {
 
     #[test]
     fn teleinfo_registry_status() {
-        let registry_status = StatusRegistry::new("013A4401").unwrap();
+        let mut registry_status = StatusRegistry::new("013A4401").unwrap();
         assert_eq!(
             "contactor=open cut_system=close operating=consumer active_power=positive tarif_index=2 provider_tarif_index=2 euridis_state=\"Activate with security\" cpl_status=New/Lock cpl_synchronization=false tempo_color=Blue tomorrow_tempo_color=None pm_advice=\"No PM advice\" pm=\"No PM\"",
             registry_status.to_string().as_str()
         );
         assert_eq!(0x013A4401, registry_status.get_registry_value());
         assert_eq!(414, registry_status.checksum());
+
+        registry_status.mobile_peak_advice = 1;
+        registry_status.mobile_peak = 2;
+        assert!(
+            registry_status
+                .to_string()
+                .ends_with("pm_advice=PM1 pm=PM2")
+        );
+    }
+
+    #[test]
+    fn oversized_frame_error_is_recoverable() {
+        let error = TeleinfoError::FrameTooLong(Teleinfo::MAX_FRAME_SIZE);
+        assert!(error.recoverable());
+        assert_eq!("Teleinfo frame is too long (2048 bytes)", error.to_string());
     }
 
     #[test]

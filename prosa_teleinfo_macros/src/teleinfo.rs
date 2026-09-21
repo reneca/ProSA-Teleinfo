@@ -14,9 +14,9 @@ impl Parse for TeleinfoChecksumMacro {
     }
 }
 
-impl Into<proc_macro2::TokenStream> for TeleinfoChecksumMacro {
-    fn into(self) -> proc_macro2::TokenStream {
-        let teleinfo_val = self.teleinfo_str.value();
+impl From<TeleinfoChecksumMacro> for proc_macro2::TokenStream {
+    fn from(value: TeleinfoChecksumMacro) -> Self {
+        let teleinfo_val = value.teleinfo_str.value();
 
         let mut checksum = 0u64;
         for c in teleinfo_val.chars() {

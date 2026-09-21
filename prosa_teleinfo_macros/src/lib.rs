@@ -11,7 +11,7 @@ use syn::parse_macro_input;
 /// Macro to calculate the checksum for a Teleinfo string value
 ///
 /// ```
-/// use rs_ovpinergy_macros::teleinfo_checksum_str;
+/// use prosa_teleinfo_macros::teleinfo_checksum_str;
 ///
 /// assert_eq!(283u64, teleinfo_checksum_str!("BASE"));
 /// ```
