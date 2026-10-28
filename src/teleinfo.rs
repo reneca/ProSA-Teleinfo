@@ -154,11 +154,18 @@ impl RateColor {
 impl From<&String> for RateColor {
     fn from(val: &String) -> Self {
         let upper_val = val.to_uppercase();
-        if upper_val.contains("BLEU") || upper_val.contains("BLU") {
+        // Historical Tempo PTEC values end with the day color (`HCJB`, `HPJW`, `HPJR`, ...)
+        if upper_val.contains("BLEU") || upper_val.contains("BLU") || upper_val.ends_with("JB") {
             RateColor::BLUE
-        } else if upper_val.contains("BLAN") || upper_val.contains("WHIT") {
+        } else if upper_val.contains("BLAN")
+            || upper_val.contains("WHIT")
+            || upper_val.ends_with("JW")
+        {
             RateColor::WHITE
-        } else if upper_val.contains("ROUG") || upper_val.contains("RED") {
+        } else if upper_val.contains("ROUG")
+            || upper_val.contains("RED")
+            || upper_val.ends_with("JR")
+        {
             RateColor::RED
         } else {
             RateColor::NONE
@@ -616,6 +623,8 @@ pub enum TeleinfoFrame {
     UMOY(u8, u16, Timestamp),
     /// Maximum current per phase
     IMAX(u8, u16),
+    /// Warning on subscribed power overload (A)
+    ADPS(u16),
     /// Warning on current overload per phase
     ADIR(u8, u16),
     /// Max power reach (W)
@@ -725,6 +734,7 @@ macro_rules! checksum_num {
 
 impl TeleinfoFrame {
     /// Function to get the phase id from the tag name number at its end
+    /// Return 0 if the tag doesn't have a phase number (single-phase historical tags like `IINST`)
     fn get_phase_id(tag: &str) -> u8 {
         if let Some(c) = tag.chars().last() {
             let last_char = c as u8;
@@ -733,7 +743,7 @@ impl TeleinfoFrame {
             }
         }
 
-        1
+        0
     }
 
     /// Function to get the quadrant id from the tag name number at its end
@@ -934,6 +944,7 @@ impl TeleinfoFrame {
                 checksum_num!(checksum, "UMOY", *phase, volts, 3, time)
             }
             TeleinfoFrame::IMAX(phase, amps) => checksum_num!(checksum, "IMAX", *phase, amps, 3),
+            TeleinfoFrame::ADPS(amps) => checksum_num!(checksum, "ADPS", amps, 3),
             TeleinfoFrame::ADIR(phase, amps) => checksum_num!(checksum, "ADIR", *phase, amps, 3),
             TeleinfoFrame::PMAX(w) => checksum_num!(checksum, "PMAX", w, 5),
             TeleinfoFrame::PAPP(va) => checksum_num!(checksum, "PAPP", va, 5),
@@ -997,7 +1008,10 @@ impl TeleinfoFrame {
             }
             TeleinfoFrame::MSG1(val) => checksum_str!(checksum, "MSG1", val),
             TeleinfoFrame::MSG2(val) => checksum_str!(checksum, "MSG2", val),
-            TeleinfoFrame::PPOT(ppot) => checksum_num!(checksum, "PPOT", ppot, 2),
+            TeleinfoFrame::PPOT(ppot) => {
+                let val = format!("{ppot:02X}");
+                checksum_str!(checksum, "PPOT", val)
+            }
         }
 
         (checksum & 0x3F) as u8 + 0x20
@@ -1067,6 +1081,7 @@ impl TeleinfoFrame {
                 Self::get_phase_id(imax),
                 TeleinfoFrame::get_num_val(buf, tag_sep)?,
             ),
+            "ADPS" => TeleinfoFrame::ADPS(TeleinfoFrame::get_num_val(buf, tag_sep)?),
             adir if adir.starts_with("ADIR") => TeleinfoFrame::ADIR(
                 Self::get_phase_id(adir),
                 TeleinfoFrame::get_num_val(buf, tag_sep)?,
@@ -1137,7 +1152,11 @@ impl TeleinfoFrame {
             }
             "MSG1" => TeleinfoFrame::MSG1(TeleinfoFrame::get_val(buf, tag_sep)?),
             "MSG2" => TeleinfoFrame::MSG2(TeleinfoFrame::get_val(buf, tag_sep)?),
-            "PPOT" => TeleinfoFrame::PPOT(TeleinfoFrame::get_num_val(buf, tag_sep)?),
+            // Phase cut bits are sent as an hexadecimal digit ("0X")
+            "PPOT" => TeleinfoFrame::PPOT(
+                u8::from_str_radix(&TeleinfoFrame::get_val(buf, tag_sep)?, 16)
+                    .map_err(|e| TeleinfoError::NumValue(e.to_string()))?,
+            ),
             tag => return Err(TeleinfoError::UnimplementedTeleinfoTag(tag.into())),
         };
 
@@ -1369,6 +1388,44 @@ mod tests {
         let error = TeleinfoError::FrameTooLong(Teleinfo::MAX_FRAME_SIZE);
         assert!(error.recoverable());
         assert_eq!("Teleinfo frame is too long (2048 bytes)", error.to_string());
+    }
+
+    #[test]
+    fn legacy_single_phase_frames_checksum() {
+        let mut frame_data_iinst = Bytes::from_static(b"IINST 001 X\r");
+        let frame = TeleinfoFrame::read(&mut frame_data_iinst).unwrap();
+        assert_eq!(TeleinfoFrame::IINST(0, 1), frame);
+
+        let mut frame_data_imax = Bytes::from_static(b"IMAX 090 H\r");
+        let frame = TeleinfoFrame::read(&mut frame_data_imax).unwrap();
+        assert_eq!(TeleinfoFrame::IMAX(0, 90), frame);
+
+        let mut frame_data_iinst2 = Bytes::from_static(b"IINST2 005 N\r");
+        let frame = TeleinfoFrame::read(&mut frame_data_iinst2).unwrap();
+        assert_eq!(TeleinfoFrame::IINST(2, 5), frame);
+    }
+
+    #[test]
+    fn legacy_adps_and_ppot_frames() {
+        let mut frame_data_adps = Bytes::from_static(b"ADPS 032 =\r");
+        let frame = TeleinfoFrame::read(&mut frame_data_adps).unwrap();
+        assert_eq!(TeleinfoFrame::ADPS(32), frame);
+
+        let mut frame_data_ppot = Bytes::from_static(b"PPOT 0E 8\r");
+        let frame = TeleinfoFrame::read(&mut frame_data_ppot).unwrap();
+        assert_eq!(TeleinfoFrame::PPOT(0x0E), frame);
+
+        let mut frame_data_ppot = Bytes::from_static(b"PPOT 00 #\r");
+        let frame = TeleinfoFrame::read(&mut frame_data_ppot).unwrap();
+        assert_eq!(TeleinfoFrame::PPOT(0), frame);
+    }
+
+    #[test]
+    fn legacy_tempo_ptec_color() {
+        assert_eq!(RateColor::BLUE, RateColor::from(&String::from("HCJB")));
+        assert_eq!(RateColor::WHITE, RateColor::from(&String::from("HPJW")));
+        assert_eq!(RateColor::RED, RateColor::from(&String::from("HPJR")));
+        assert_eq!(RateColor::NONE, RateColor::from(&String::from("HC..")));
     }
 
     #[test]

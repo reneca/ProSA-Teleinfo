@@ -318,6 +318,9 @@ impl TeleinfoObservability {
 
             let mut consumption = 0;
             let mut price_euros = 0f64;
+            // Colors are only meaningful for Tempo, other options use the HC/HP prices
+            let is_tempo = matches!(*self.tarif_option.borrow(), OpTarif::BBRx(_));
+            let price_color = |color| if is_tempo { color } else { RateColor::NONE };
 
             // HC
             let current_index_low_hour = self.index_low_hour.borrow();
@@ -330,7 +333,7 @@ impl TeleinfoObservability {
                     consumption += color_consumption;
                     price_euros += Self::price_euros(
                         color_consumption,
-                        self.settings.get_price(color, RatePeriod::HC),
+                        self.settings.get_price(price_color(color), RatePeriod::HC),
                     );
                 }
             }
@@ -346,7 +349,7 @@ impl TeleinfoObservability {
                     consumption += color_consumption;
                     price_euros += Self::price_euros(
                         color_consumption,
-                        self.settings.get_price(color, RatePeriod::HP),
+                        self.settings.get_price(price_color(color), RatePeriod::HP),
                     );
                 }
             }
@@ -571,6 +574,7 @@ impl TeleinfoObservability {
                     self.new_period(rate_period);
                 }
                 let _ = self.tarif_period.send(rate_period);
+                let _ = self.color.send(RateColor::from(val));
             }
             TeleinfoFrame::LTARF(val) => {
                 let rate_period = RatePeriod::try_from(val).unwrap_or_default();

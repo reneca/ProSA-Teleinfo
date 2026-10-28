@@ -1,6 +1,9 @@
+[workspace]
+members = ["prosa_teleinfo_macros"]
+
 [package]
 name = "prosa-teleinfo"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Jeremy HERGAULT"]
 homepage = "https://www.overware.fr/ovpinergy/"
 repository = "https://github.com/reneca/ProSA-Teleinfo"
@@ -17,7 +20,7 @@ settings = "proc::TeleinfoSettings"
 adaptor = ["adaptor::TeleinfoPinergyAdaptor"]
 
 [dependencies]
-prosa-teleinfo-macros = { path = "prosa_teleinfo_macros", version = "0.1.0" }
+prosa-teleinfo-macros = { path = "prosa_teleinfo_macros", version = "0.1.1" }
 prosa = "0.5"
 serde = "1"
 tokio = "1"

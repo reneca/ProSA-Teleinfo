@@ -45,6 +45,13 @@ jobs:
           components: rustfmt
       - run: cargo fmt -- --check
 
+  deny:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
   doc:
     name: Documentation
     runs-on: ubuntu-latest
