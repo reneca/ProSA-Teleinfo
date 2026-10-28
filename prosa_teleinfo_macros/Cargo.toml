@@ -1,6 +1,6 @@
 [package]
 name = "prosa-teleinfo-macros"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Jeremy HERGAULT"]
 homepage = "https://www.overware.fr/ovpinergy/"
 repository = "https://github.com/reneca/ProSA-Teleinfo"
@@ -12,6 +12,6 @@ description = "Macro library for Enedis (French electricity network) Teleinfo"
 proc-macro = true
 
 [dependencies]
-syn = { version = "2", features = ["full"] }
+syn = { version = "3", features = ["full"] }
 quote = "1"
 proc-macro2 = "1"
